@@ -68,21 +68,19 @@ class QuantumDriver(driver.VolumeDriver):
 
     def create_volume(self, volume):
         
-        vol_str = 'create_volume ->' + \
-            ' name: ' + volume['name'] + \
-            ' id: ' + volume['id'] + \
-            ' size: ' + str(volume['size'] + \
-            ' type: ' + str(volume['type'])
+        vol_str = 'create_volume ->'        + \
+            ' name: ' + volume['name']      + \
+            ' id: '   + volume['id']        + \
+            ' size: ' + str(volume['size']) 
         
         self.logmsg(vol_str)
 
     def remove_export(self, volume):
 
-        # vol_str = 'remove_export ->' + \
-        # ' name: ' + volume['name'] + \
-        # ' id: ' + volume['id'] + \
-        # ' size: ' + str(volume['size'] + \
-        # ' type: ' + str(volume['type'])
+        vol_str = 'remove_export ->'        + \
+            ' name: ' + volume['name']      + \
+            ' id: '   + volume['id']        + \
+            ' size: ' + str(volume['size'])
         log_str = 'remove_export/n'
         self.logmsg(vol_str)
         
