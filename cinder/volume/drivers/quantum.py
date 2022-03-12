@@ -81,7 +81,6 @@ class QuantumDriver(driver.VolumeDriver):
             ' name: ' + volume['name']      + \
             ' id: '   + volume['id']        + \
             ' size: ' + str(volume['size'])
-        log_str = 'remove_export/n'
         self.logmsg(vol_str)
         
     def create_export(self, volume):
