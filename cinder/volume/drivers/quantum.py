@@ -66,6 +66,14 @@ class QuantumDriver(driver.VolumeDriver):
 # | user_id                        | 73b407f49ae04b489889977d669e28a9          |
 # +--------------------------------+-------------------------------------------+
 
+    def remove_export(self, context, volume):
+
+        vol_str = 'remove_export ->'        + \
+            ' name: ' + volume['name']      + \
+            ' id: '   + volume['id']        + \
+            ' size: ' + str(volume['size'])
+        self.logmsg(vol_str)
+        
     def create_volume(self, volume):
         
         vol_str = 'create_volume ->'        + \
@@ -75,14 +83,6 @@ class QuantumDriver(driver.VolumeDriver):
         
         self.logmsg(vol_str)
 
-    def remove_export(self, volume):
-
-        vol_str = 'remove_export ->'        + \
-            ' name: ' + volume['name']      + \
-            ' id: '   + volume['id']        + \
-            ' size: ' + str(volume['size'])
-        self.logmsg(vol_str)
-        
     def create_export(self, volume):
         self.logmsg('creat_export/n')
         
