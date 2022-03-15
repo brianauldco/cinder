@@ -13,7 +13,7 @@ def create_volume(vol_name, size):
     params = {"vpgName":vpg, "async": "false"}
     data   = {}
     r = requests.get(url_base + "vPG", params=params, data=data, auth=('pivot3','pivot3'), verify=False)
-    print( 'get return status_code:{}'.format(r.status_code))
+    logger.info( 'get return status_code:{}'.format(r.status_code))
     if ( r.status_code == 200 ):
         r_json = r.json()
         vpgid =  r_json[0]['vpgid']
@@ -23,7 +23,7 @@ def create_volume(vol_name, size):
     
     # 2. use vpgid to create volume
     # =====================================================================================
-    print('create_volume proceed - vpgId:{}'.format(vpgid))
+    logger.info('create_volume proceed - vpgId:{}'.format(vpgid))
     params = {"vpgId" : vpgid, "async" : "false"}
     data   = {
         "name": vol_name,
@@ -40,21 +40,21 @@ def create_volume(vol_name, size):
         }
     }
 
-    print('create_volume done')
+    logger.info('create_volume done')
     
-    r = requests.post(url_base + "vPG/vsVolume", params=params, data=data, auth=('pivot3','pivot3'), verify=False)
-    print( 'post return status_code:{}'.format(r.status_code))
+    r = requests.post(url_base + "vPG/vsVolume", params=params, json=data, auth=('pivot3','pivot3'), verify=False)
+    logger.info( 'post return status_code:{}'.format(r.status_code))
     if ( r.status_code == 201 and len(r.content)):
         return
     else:
         raise_assert('Got status code:{} with response:{}'.format(r.status_code, r.text))
 
-    print('create_volume done')
+    logger.info('create_volume done')
     
 
 
 # get vpd+id
-#logging. basicConfig(filename="test.py.log", level=logging.DEBUG)
-#logger = logging.getLogger(__name__)
+logging. basicConfig(filename="test.py.log", level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 ret = create_volume('testvol', 20)
 
