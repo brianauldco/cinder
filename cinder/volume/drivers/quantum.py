@@ -33,8 +33,8 @@ class QuantumDriver(driver.VolumeDriver):
         # r = request.get('https://10.134.204.84:8080/p3api/v2/api/vPG?vpgName=VG509')
         # print(r)
 
-
-
+    def raise_assert(str):
+        assert False,str
 
     def logmsg(self, string):
         LOG.info('qmco_api ' + string)
@@ -80,24 +80,150 @@ class QuantumDriver(driver.VolumeDriver):
             ' id: '   + volume['id']        + \
             ' size: ' + str(volume['size'])
         self.logmsg(vol_str)
+
+# Volume(
+#         _name_id=None,
+#         admin_metadata={},
+#         attach_status='detached',
+#         availability_zone='nova',
+#         bootable=False,
+#         cluster=<?>,
+#         cluster_name=None,
+#         consistencygroup=<?>,
+#         consistencygroup_id=None,
+#         created_at=2022-03-15T17:10:28Z,
+#         deleted=False,deleted_at=None,
+#         display_description=None,
+#         display_name='testvol2',
+#         ec2_id=None,
+#         encryption_key_id=None,
+#         glance_metadata=<?>,
+#         group=<?>,
+#         group_id=None,
+#         host='den-bauld-dstack@quantum#quantum',
+#         id=84d6b74d-6d82-42f1-a69a-45bf85cfd8a5,
+#         launched_at=None,
+#         metadata={},
+#         migration_status=None,
+#         multiattach=False,
+#         previous_status=None,
+#         project_id='22759826927a4c0dad8bf00dedd5b91f',
+#         provider_auth=None,
+#         provider_geometry=None,
+#         provider_id=None,
+#         provider_location=None,
+#         replication_driver_data=None,
+#         replication_extended_status=None,
+#         replication_status=None,
+#         scheduled_at=2022-03-15T17:10:28Z,
+#         service_uuid=None,
+#         shared_targets=True,
+#         size=20,
+#         snapshot_id=None,
+#         snapshots=<?>,
+#         source_volid=None,
+#         status='creating',
+#         terminated_at=None,
+#         updated_at=2022-03-15T17:10:28Z,
+#         use_quota=True,
+#         user_id='fa12b8237e354d45a91a4ede38ae017c',
+#         volume_attachment=VolumeAttachmentList,
+#         volume_type=VolumeType(4709615a-fd13-49e2-b5da-fe6367682825),
+#         volume_type_id=4709615a-fd13-49e2-b5da-fe6367682825)
         
     def create_volume(self, volume):
         
-        vol_str = 'create_volume ->'        + \
-            ' name: ' + volume['name']      + \
+        vol_str = 'create_volume start ->'        + \
+            ' name: ' + volume['display_name']      + \
             ' id: '   + volume['id']        + \
             ' size: ' + str(volume['size']) 
-        
         self.logmsg(vol_str)
+
+        # 1. get vpgid
+        # =====================================================================================
+        url_base = 'https://10.134.204.84:8080/p3api/v2/api/'
+        vpg = "VG509"
+        params = {"vpgName":vpg, "async": "false"}
+        data   = {}
+        r = requests.get(url_base + "vPG", params=params, data=data, auth=('pivot3','pivot3'), verify=False)
+        self.logmsg( 'get return status_code:{}'.format(r.status_code))
+        if ( r.status_code == 200 ):
+            r_json = r.json()
+            vpgid =  r_json[0]['vpgid']
+        else:
+            raise_assert("vpgid was not retrievable")
+
+    
+        # 2. use vpgid to create volume
+        # =====================================================================================
+        self.logmsg('create_volume proceed - vpgId:{}'.format(vpgid))
+        params = {"vpgId" : vpgid, "async" : "false"}
+        data   = {
+            "name": volume['display_name'],
+            "ecLevel": "ec-1",
+            "rebuildOrderPriority": "high",
+            "chapEnabled": "false",
+            "tierId": "1",
+            "size": {
+                "GiB": volume['size']
+            },
+            "accessControl": {
+                "initiatorName": "IscsiInitiatorName",
+                "access": "readwrite"
+            }
+        }
+        r = requests.post(url_base + "vPG/vsVolume", params=params, json=data, auth=('pivot3','pivot3'), verify=False)
+        self.logmsg( 'post return status_code:{}'.format(r.status_code))
+        if ( r.status_code == 201 and len(r.content)):
+            self.logmsg('create_volume done')
+            return
+        else:
+            raise_assert('Got status code:{} with response:{}'.format(r.status_code, r.text))
+
+            self.logmsg('create_volume done error')
+
+    def delete_volume(self, volume):
+        vol_str = 'delete_volume start ->'        + \
+            ' name: ' + volume['display_name']      + \
+            ' id: '   + volume['id']        + \
+            ' size: ' + str(volume['size']) 
+        self.logmsg(vol_str)
+
+        # 1. get vpgid
+        # =====================================================================================
+        url_base = 'https://10.134.204.84:8080/p3api/v2/api/'
+        vpg = "VG509"
+        params = {"vpgName":vpg, "async": "false"}
+        data   = {}
+        r = requests.get(url_base + "vPG", params=params, data=data, auth=('pivot3','pivot3'), verify=False)
+        self.logmsg( 'get return status_code:{}'.format(r.status_code))
+        if ( r.status_code == 200 ):
+            r_json = r.json()
+            vpgid =  r_json[0]['vpgid']
+        else:
+            raise_assert("vpgid was not retrievable")
+
+    
+        # 2. use vpgid to delete volume
+        # =====================================================================================
+        self.logmsg('delete proceed - vpgId:{}'.format(vpgid))
+        params = {"vpgId" : vpgid, "async" : "false", "volumeName" : volume['display_name']}
+        data   = {}
+        r = requests.delete(url_base + "vPG/vsVolume", params=params, json=data, auth=('pivot3','pivot3'), verify=False)
+        self.logmsg( 'post return status_code:{}'.format(r.status_code))
+        if ( r.status_code == 200 ):
+            self.logmsg('delete_volume done')
+            return
+        else:
+            raise_assert('Got status code:{} with response:{}'.format(r.status_code, r.text))
+
+            self.logmsg('delete_volume done error')
 
     def create_export(self, volume):
         self.logmsg('creat_export/n')
         
     def update_volume(self, volume):
         self.logmsg('update/n')
-
-    def delete_volume(self, volume):
-        self.logmsg('delete/n')
 
     def get_vol_by_id(self, volume):
         self.logmsg('get vol by id/n')
