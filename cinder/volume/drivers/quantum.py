@@ -4,6 +4,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from cinder import interface
 from cinder.volume import driver
+import requests
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -27,6 +28,12 @@ class QuantumDriver(driver.VolumeDriver):
         super(QuantumDriver, self).__init__(*args, **kwargs)
         self.configuration.append_config_values(volume_opts)
         self.endpoint = self.configuration.safe_get('quantum_api_endpoint')
+
+        # this should be GET'ed
+        r = request.get('https://10.134.204.84:8080/p3api/v2/api/vPG?vpgName=VG509')
+        print(r)
+
+
 
 
     def logmsg(self, string):
