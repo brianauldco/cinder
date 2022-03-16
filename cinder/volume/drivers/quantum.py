@@ -217,10 +217,18 @@ class QuantumDriver(driver.VolumeDriver):
         else:
             raise_assert('Got status code:{} with response:{}'.format(r.status_code, r.text))
 
-            self.logmsg('delete_volume done error')
+            self.logmsg('create_volume done error')
 
-    def create_export(self, volume):
-        self.logmsg('creat_export/n')
+    def create_export(self, context, volume, connector):
+        vol_str = 'create export start ->'        + \
+            ' name: ' + volume['display_name']      + \
+            ' id: '   + volume['id']        + \
+            ' size: ' + str(volume['size'])
+        self.logmsg(vol_str)
+        print('context   -> {}'.format(context))
+        print('volume    -> {}'.format(volume))
+        print('connector -> {}'.format(connector))
+        self.logmsg("create export done")
         
     def update_volume(self, volume):
         self.logmsg('update/n')
@@ -264,6 +272,18 @@ class QuantumDriver(driver.VolumeDriver):
          self.logmsg('updating backend stats')
          return ret
 
+# conn_info return to caller     
+{'driver_volume_type': 'iscsi',
+ 'data': {'target_discovered': False,
+          'target_portal': '10.134.204.85:3260',
+          'target_iqn': 'iqn.2010-10.org.openstack:volume-348e5c49-41f2-4896-83f0-853588889fd5',
+          'target_lun': 0,
+          'volume_id': '348e5c49-41f2-4896-83f0-853588889fd5',
+          'auth_method': 'CHAP',
+          'auth_username': 'cAeghKukHVNeC7eJzp2b',
+          'auth_password': '8kU8FoRQWXJYE7ku',
+          'encrypted': False}}
+     
     def initialize_connection(self):
         self.logmsg('init con /n')
 

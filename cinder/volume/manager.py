@@ -4785,6 +4785,7 @@ class VolumeManager(manager.CleanableManager,
 
         try:
             conn_info = self.driver.initialize_connection(volume, connector)
+            print('qmco_api conn_info -> {}'.format(conn_info))
         except Exception as err:
             err_msg = (_("Driver initialize connection failed "
                          "(error: %(err)s).") % {'err': err})
