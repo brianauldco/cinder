@@ -5,6 +5,7 @@ from oslo_log import log as logging
 from cinder import interface
 from cinder.volume import driver
 import requests
+import json
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -24,54 +25,35 @@ class QuantumDriver(driver.VolumeDriver):
 
     VERSION = '3.0.0'
 
+
     def __init__(self, *args, **kwargs):
         super(QuantumDriver, self).__init__(*args, **kwargs)
         self.configuration.append_config_values(volume_opts)
         self.endpoint = self.configuration.safe_get('quantum_api_endpoint')
 
-        # # this should be GET'ed
-        # r = request.get('https://10.134.204.84:8080/p3api/v2/api/vPG?vpgName=VG509')
-        # print(r)
-
-    def raise_assert(str):
+        self.vpg_name      = "VG509"
+        self.p3api_v1 = "https://10.134.204.84:8443/p3api/v1/"
+        self.p3api_v2 = "https://10.134.204.84:8080/p3api/v2/api/"
+        # we should be able to set this via our api but it's troublesome
+        self.initiator_iqn = "iqn.2005-03.org.open-iscsi:4aa7c12387f9"
+        self.single_poc_target_portal = "10.134.22.21"
+        
+    def raise_assert(self, str):
         assert False,str
 
     def logmsg(self, string):
         LOG.info('qmco_api ' + string)
 
     def do_setup(self, context):
-        
-        self.logmsg('do setup /n')
-
-# volume show testvol
-# +--------------------------------+-------------------------------------------+
-# | Field                          | Value                                     |
-# +--------------------------------+-------------------------------------------+
-# | attachments                    | []                                        |
-# | availability_zone              | nova                                      |
-# | bootable                       | false                                     |
-# | consistencygroup_id            | None                                      |
-# | created_at                     | 2022-03-12T00:20:56.000000                |
-# | description                    | None                                      |
-# | encrypted                      | False                                     |
-# | id                             | 8fc7c1e9-a84b-4c3b-8311-b4566fcf1d4b      |
-# | migration_status               | None                                      |
-# | multiattach                    | False                                     |
-# | name                           | testvol                                   |
-# | os-vol-host-attr:host          | den-bauld-dstack-barbican@quantum#quantum |
-# | os-vol-mig-status-attr:migstat | None                                      |
-# | os-vol-mig-status-attr:name_id | None                                      |
-# | os-vol-tenant-attr:tenant_id   | 140c34550b6540bdb5ff001c91be16ef          |
-# | properties                     |                                           |
-# | replication_status             | None                                      |
-# | size                           | 10                                        |
-# | snapshot_id                    | None                                      |
-# | source_volid                   | None                                      |
-# | status                         | available                                 |
-# | type                           | quantum                                   |
-# | updated_at                     | 2022-03-12T00:21:14.000000                |
-# | user_id                        | 73b407f49ae04b489889977d669e28a9          |
-# +--------------------------------+-------------------------------------------+
+        params = {"vpgName":self.vpg_name, "async": "false"}
+        data   = {}
+        r = requests.get(self.p3api_v2 + "vPG", params=params, data=data, auth=('pivot3','pivot3'), verify=False)
+        self.print_requests_response("qmco api Get VPG Info", r)
+        if ( r.status_code == 200 ):
+            r_json = r.json()
+            self.vpgid =  r_json[0]['vpgid']
+        else:
+            self.raise_assert("vpgid was not retrievable")
 
     def remove_export(self, context, volume):
 
@@ -81,56 +63,7 @@ class QuantumDriver(driver.VolumeDriver):
             ' size: ' + str(volume['size'])
         self.logmsg(vol_str)
 
-# Volume(
-#         _name_id=None,
-#         admin_metadata={},
-#         attach_status='detached',
-#         availability_zone='nova',
-#         bootable=False,
-#         cluster=<?>,
-#         cluster_name=None,
-#         consistencygroup=<?>,
-#         consistencygroup_id=None,
-#         created_at=2022-03-15T17:10:28Z,
-#         deleted=False,deleted_at=None,
-#         display_description=None,
-#         display_name='testvol2',
-#         ec2_id=None,
-#         encryption_key_id=None,
-#         glance_metadata=<?>,
-#         group=<?>,
-#         group_id=None,
-#         host='den-bauld-dstack@quantum#quantum',
-#         id=84d6b74d-6d82-42f1-a69a-45bf85cfd8a5,
-#         launched_at=None,
-#         metadata={},
-#         migration_status=None,
-#         multiattach=False,
-#         previous_status=None,
-#         project_id='22759826927a4c0dad8bf00dedd5b91f',
-#         provider_auth=None,
-#         provider_geometry=None,
-#         provider_id=None,
-#         provider_location=None,
-#         replication_driver_data=None,
-#         replication_extended_status=None,
-#         replication_status=None,
-#         scheduled_at=2022-03-15T17:10:28Z,
-#         service_uuid=None,
-#         shared_targets=True,
-#         size=20,
-#         snapshot_id=None,
-#         snapshots=<?>,
-#         source_volid=None,
-#         status='creating',
-#         terminated_at=None,
-#         updated_at=2022-03-15T17:10:28Z,
-#         use_quota=True,
-#         user_id='fa12b8237e354d45a91a4ede38ae017c',
-#         volume_attachment=VolumeAttachmentList,
-#         volume_type=VolumeType(4709615a-fd13-49e2-b5da-fe6367682825),
-#         volume_type_id=4709615a-fd13-49e2-b5da-fe6367682825)
-        
+
     def create_volume(self, volume):
         
         vol_str = 'create_volume start ->'        + \
@@ -139,25 +72,10 @@ class QuantumDriver(driver.VolumeDriver):
             ' size: ' + str(volume['size']) 
         self.logmsg(vol_str)
 
-        # 1. get vpgid
-        # =====================================================================================
-        url_base = 'https://10.134.204.84:8080/p3api/v2/api/'
-        vpg = "VG509"
-        params = {"vpgName":vpg, "async": "false"}
-        data   = {}
-        r = requests.get(url_base + "vPG", params=params, data=data, auth=('pivot3','pivot3'), verify=False)
-        self.logmsg( 'get return status_code:{}'.format(r.status_code))
-        if ( r.status_code == 200 ):
-            r_json = r.json()
-            vpgid =  r_json[0]['vpgid']
-        else:
-            raise_assert("vpgid was not retrievable")
-
-    
         # 2. use vpgid to create volume
         # =====================================================================================
-        self.logmsg('create_volume proceed - vpgId:{}'.format(vpgid))
-        params = {"vpgId" : vpgid, "async" : "false"}
+        self.logmsg('create_volume proceed - vpgId:{} volume:{}'.format(self.vpgid, volume['display_name']))
+        params = {"vpgId" : self.vpgid, "async" : "false"}
         data   = {
             "name": volume['display_name'],
             "ecLevel": "ec-1",
@@ -168,18 +86,17 @@ class QuantumDriver(driver.VolumeDriver):
                 "GiB": volume['size']
             },
             "accessControl": {
-                "initiatorName": "IscsiInitiatorName",
+                "initiatorName": "iqn.2005-03.org.open-iscsi:4aa7c12387f9",
                 "access": "readwrite"
             }
         }
-        r = requests.post(url_base + "vPG/vsVolume", params=params, json=data, auth=('pivot3','pivot3'), verify=False)
-        self.logmsg( 'post return status_code:{}'.format(r.status_code))
+        r = requests.post(self.p3api_v2 + "vPG/vsVolume", params=params, json=data, auth=('pivot3','pivot3'), verify=False)
+        self.print_requests_response("qmco api create volume", r)
         if ( r.status_code == 201 and len(r.content)):
             self.logmsg('create_volume done')
             return
         else:
-            raise_assert('Got status code:{} with response:{}'.format(r.status_code, r.text))
-
+            self.raise_assert('Got status code:{} with response:{}'.format(r.status_code, r.text))
             self.logmsg('create_volume done error')
 
     def delete_volume(self, volume):
@@ -189,34 +106,18 @@ class QuantumDriver(driver.VolumeDriver):
             ' size: ' + str(volume['size']) 
         self.logmsg(vol_str)
 
-        # 1. get vpgid
-        # =====================================================================================
-        url_base = 'https://10.134.204.84:8080/p3api/v2/api/'
-        vpg = "VG509"
-        params = {"vpgName":vpg, "async": "false"}
-        data   = {}
-        r = requests.get(url_base + "vPG", params=params, data=data, auth=('pivot3','pivot3'), verify=False)
-        self.logmsg( 'get return status_code:{}'.format(r.status_code))
-        if ( r.status_code == 200 ):
-            r_json = r.json()
-            vpgid =  r_json[0]['vpgid']
-        else:
-            raise_assert("vpgid was not retrievable")
-
-    
-        # 2. use vpgid to delete volume
+        # 1. delete volume
         # =====================================================================================
         self.logmsg('delete proceed - vpgId:{}'.format(vpgid))
-        params = {"vpgId" : vpgid, "async" : "false", "volumeName" : volume['display_name']}
+        params = {"vpgId" : self.vpgid, "async" : "false", "volumeName" : volume['display_name']}
         data   = {}
-        r = requests.delete(url_base + "vPG/vsVolume", params=params, json=data, auth=('pivot3','pivot3'), verify=False)
-        self.logmsg( 'post return status_code:{}'.format(r.status_code))
+        r = requests.delete(self.p3api_v2 + "vPG/vsVolume", params=params, json=data, auth=('pivot3','pivot3'), verify=False)
+        self.print_requests_response("qmco api Delete Volume", r)
         if ( r.status_code == 200 ):
             self.logmsg('delete_volume done')
             return
         else:
-            raise_assert('Got status code:{} with response:{}'.format(r.status_code, r.text))
-
+            self.raise_assert('Got status code:{} with response:{}'.format(r.status_code, r.text))
             self.logmsg('create_volume done error')
 
     def create_export(self, context, volume, connector):
@@ -272,23 +173,178 @@ class QuantumDriver(driver.VolumeDriver):
          self.logmsg('updating backend stats')
          return ret
 
-# conn_info return to caller     
-{'driver_volume_type': 'iscsi',
- 'data': {'target_discovered': False,
-          'target_portal': '10.134.204.85:3260',
-          'target_iqn': 'iqn.2010-10.org.openstack:volume-348e5c49-41f2-4896-83f0-853588889fd5',
-          'target_lun': 0,
-          'volume_id': '348e5c49-41f2-4896-83f0-853588889fd5',
-          'auth_method': 'CHAP',
-          'auth_username': 'cAeghKukHVNeC7eJzp2b',
-          'auth_password': '8kU8FoRQWXJYE7ku',
-          'encrypted': False}}
-     
-    def initialize_connection(self):
-        self.logmsg('init con /n')
+    def initialize_connection(self, volume, connector):
 
+        vol_str = 'initialize_connection start ->'        + \
+            ' name: ' + volume['display_name']      + \
+            ' id: '   + volume['id']        + \
+            ' size: ' + str(volume['size'])
+        self.logmsg(vol_str)
+        print('volume    -> {}'.format(volume))
+        print('connector -> {}'.format(connector))
+
+        # 1. get volume_id
+        # =====================================================================================
+        p3volume = self.get_volume_details(volume)
+
+        # 2. set the initiator name ...
+        #
+        # **** this was hard-code at volume create. should really be doing this from the connector['initiator'] info
+        # ==========================================================================================================
+        # see v1 api call notes below
+        #params = {"vpgId":vpgid, "volumeName":volume['display_name'], "initiatorName":connector['initiator'],"async": "false", }
+        # url    = self.p3api_v1 + "array/" +  self.vpgid + "/volume/" + p3volume['id'] + "/accessControl/addAccessControl"
+        # data   = {"access":"Read/Write", "chapsecret":"", "initiatorname":connector['initiator']}
+        # r = requests.post(url, data=data, auth=('pivot3','pivot3'), verify=False)
+        # #self.print_requests_response("qmco api Set Initiator Name", r)
+        # self.logmsg( 'get return status_code:{}'.format(r.status_code))
+        # if ( r.status_code == 200 ):
+        #     r_json = r.json()
+        #     self.logmsg( 'POST response content follows' )
+        #     print(r_json)
+        # else:
+        #     self.raise_assert("vpgid was not retrievable")
+        # self.logmsg('ready to complete volume info for vol:{}'.format(p3volumne))
+        # self.logmsg("initialize_connection done")
+        # p3volume = self.get_volume_details(volume)
+        
+        conn_info =  {'driver_volume_type': 'iscsi',
+                      'data': {'target_discovered': False,
+                               'target_portal': self.single_poc_target_portal,
+                               'target_iqn': p3volume['iscsiTargetName'],
+                               'target_lun': 0,
+                               'volume_id': p3volume['id'],
+                               # 'auth_method': 'CHAP',
+                               # 'auth_username': 'cAeghKukHVNeC7eJzp2b',
+                               # 'auth_password': '8kU8FoRQWXJYE7ku',
+                               'encrypted': False}}
+        return conn_info
+                                                                  
     def terminate_connection(self):
         self.logmsg('terminate con /n')
 
 
-# attachment_update        
+    # this help is not necessary if we can save the vol_id locally
+    def get_volume_details(self, volume):
+        params = {"vpgId":self.vpgid, "volumeName":volume['display_name'], "async": "false"}
+        data   = {}
+        r = requests.get(self.p3api_v2 + "vPG/vsVolume", params=params, data=data, auth=('pivot3','pivot3'), verify=False)
+        self.print_requests_response("qmco api Get Volume Info", r)
+        if ( r.status_code == 200 ):
+            r_json = r.json()
+            return  r_json[0]
+        else:
+            self.raise_assert("vpgid was not retrievable")
+     
+    def print_requests_response(self, action, response):
+        print(action)
+        pretty_json = json.loads(response.text)
+        print(json.dumps(pretty_json, indent=2))
+
+# A. Volume field
+# ===========================================================================================================
+# ===========================================================================================================
+#         _name_id=None,
+#         admin_metadata={},
+#         attach_status='detached',
+#         availability_zone='nova',
+#         bootable=False,
+#         cluster=<?>,
+#         cluster_name=None,
+#         consistencygroup=<?>,
+#         consistencygroup_id=None,
+#         created_at=2022-03-15T17:10:28Z,
+#         deleted=False,deleted_at=None,
+#         display_description=None,
+#         display_name='testvol2',
+#         ec2_id=None,
+#         encryption_key_id=None,
+#         glance_metadata=<?>,
+#         group=<?>,
+#         group_id=None,
+#         host='den-bauld-dstack@quantum#quantum',
+#         id=84d6b74d-6d82-42f1-a69a-45bf85cfd8a5,
+#         launched_at=None,
+#         metadata={},
+#         migration_status=None,
+#         multiattach=False,
+#         previous_status=None,
+#         project_id='22759826927a4c0dad8bf00dedd5b91f',
+#         provider_auth=None,
+#         provider_geometry=None,
+#         provider_id=None,
+#         provider_location=None,
+#         replication_driver_data=None,
+#         replication_extended_status=None,
+#         replication_status=None,
+#         scheduled_at=2022-03-15T17:10:28Z,
+#         service_uuid=None,
+#         shared_targets=True,
+#         size=20,
+#         snapshot_id=None,
+#         snapshots=<?>,
+#         source_volid=None,
+#         status='creating',
+#         terminated_at=None,
+#         updated_at=2022-03-15T17:10:28Z,
+#         use_quota=True,
+#         user_id='fa12b8237e354d45a91a4ede38ae017c',
+#         volume_attachment=VolumeAttachmentList,
+#         volume_type=VolumeType(4709615a-fd13-49e2-b5da-fe6367682825),
+#         volume_type_id=4709615a-fd13-49e2-b5da-fe6367682825)
+
+
+
+# B. conn_info return from initialize_connection
+# ===========================================================================================================
+# ===========================================================================================================
+# # conn_info return to caller
+#
+# {'driver_volume_type': 'iscsi',
+#  'data': {'target_discovered': False,
+#           'target_portal': '10.134.204.85:3260',
+#           'target_iqn': 'iqn.2010-10.org.openstack:volume-348e5c49-41f2-4896-83f0-853588889fd5',
+#           'target_lun': 0,
+#           'volume_id': '348e5c49-41f2-4896-83f0-853588889fd5',
+#           'auth_method': 'CHAP',
+#           'auth_username': 'cAeghKukHVNeC7eJzp2b',
+#           'auth_password': '8kU8FoRQWXJYE7ku',
+#           'encrypted': False}}
+
+
+
+# C. connector...
+# ===========================================================================================================
+# ===========================================================================================================
+# {'platform': 'x86_64',
+#  'os_type': 'linux',
+#  'ip': '10.134.6.33',
+#  'host': 'devstack-vm-vg509-2',
+#  'multipath': False,
+#  'initiator': 'iqn.2005-03.org.open-iscsi:4aa7c12387f9',
+#  'do_local_attach': False,
+#  'uuid': '7c89a707-98c2-4b5a-ab15-9a035052f55e',
+#  'system uuid': '0a352442-53ee-eb25-5778-d8d846ae6122',
+#  'mountpoint': '/dev/vdb'}
+
+# "vpgid": "600176c27bacb2c5c77c9cbe2916c172",
+
+
+
+# D. v1 api call to update initiator access
+# ===========================================================================================================
+# ===========================================================================================================
+# v1 api call for adding new host access
+# **** you cannot modify, you can only remove or add
+# **** the DELETE shown below is for removing the original accessControl field set a volume create time, since the attach comes later....
+# POST https://10.134.204.84:8443/p3api/v1/array/600176c27bacb2c5c77c9cbe2916c172/volume/600176c311aa3cf3bbac5d2a2916c172/accessControl/addAccessControl
+# {
+#     "access":"Read/Write",
+#     "chapsecret":"",
+#     "initiatorname":"craigtest"
+# }
+
+# DELETE https://10.134.204.84:8443/p3ap1/v1/array/600176c27bacb2c5c77c9cbe2916c172/volume/600176c311aa3cf3bbac5d2a2916c172/accessControl/deleteAccessControl
+# {
+#    "initiatorname":"craigtest"
+# }
