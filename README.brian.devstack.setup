@@ -1,0 +1,92 @@
+A) setup base dev stack VM
+==========================================================================================================================
+==========================================================================================================================
+
+A.1) base ubuntu tools
+--------------------------------------------------------------------------------------------------------------------------
+# on terminal
+sudo apt update -y
+sudo apt -y install net-tools
+sudo apt install -y openssh-server
+
+# can ssh in from here...
+sudo apt -y install tasksel; sudo tasksel install ubuntu-mate-desktop
+sudo add-apt-repository ppa:x2go/stable; sudo apt-get -y update; sudo apt-get install -y x2goserver x2goserver-xsession
+sudo add-apt-repository -y ppa:kelleyk/emacs; sudo apt-get -y update; sudo apt install -y emacs26; scp -r bauld@10.134.204.83:/home/bauld/.emacs* ~
+
+A.2) corpshare
+--------------------------------------------------------------------------------------------------------------------------
+# mount corpshare
+sudo mkdir -p /corpshare
+#pause
+sudo apt-get install -y cifs-utils
+#pause
+sudo chmod 666 /etc/fstab
+sudo echo "//corpshare.corp.pivot3.com/full /corpshare cifs uid=0,credentials=/home/bauld/.smb,iocharset=utf8,vers=1.0,noperm 0 0" >> /etc/fstab
+scp bauld@10.134.204.83:/home/bauld/.smb ~
+sudo mount -a
+
+A.3) base devstack setup
+--------------------------------------------------------------------------------------------------------------------------
+# devstack users and sudo
+sudo useradd -s /bin/bash -d /opt/stack -m stack
+echo "stack ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/stack
+echo "bauld ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/bauld
+
+# no ssh key setup for stack user
+on bauld-ubuntu:    scp /home/bauld/.ssh/id_rsa.pub bauld@<devstack host>/home/bauld/key
+on <devstack host>: sudo -u stack -i
+                    mkdir -p /opt/stack/.ssh
+                    cp /home/bauld/key /opt/stack/.ssh/authorized_keys
+x2go session to vm: scp -r bauld@10.134.204.83:/home/bauld/.emacs* /opt/stack/
+
+# git
+sudo apt -y install git
+git config --global http.sslverify false
+git config --global user.email "brian.auld@quantum.com"
+git config --global user.name "Brian Auld"
+
+A.4) Misc:
+* configure san0/san1 network I/Fs
+* turn off any screen locks or savers
+* add ssh-keygen to github
+
+A.5) =====> should have a VM snapshot here: (cannot do with moved VM...)
+
+B) DEVSTACK
+==========================================================================================================================
+==========================================================================================================================
+# get my fork repro
+git clone git@github.com:brianauldco/devstack.git
+(switch to stable/xena branch...)
+cp /opt/stack/devstack/local.conf.brian /opt/stack/devstack/local.conf
+
+./stack.sh
+
+
+C) cinder
+==========================================================================================================================
+==========================================================================================================================
+# This is all taken care of now by my forked repo...
+# B.1) config
+# cd /etc/cinder
+# patch -p0 < /corpshare/Users/bauld/review/triage/JP2/Enclouden/p3-POC/cinder.conf.patch
+# patch -p1 < /corpshare/Users/bauld/review/triage/JP2/Enclouden/p3-POC/0001-cinder-changes.patch
+
+# don't think this is needed anymore...
+cinder type-create quantum
+cinder type-key quantum set volume_backend_name=quantum
+
+B.2) restart
+--------------------------------------------------------------------------------------------------------------------------
+sudo systemctl restart devstack@c-*
+
+B.3) logs
+--------------------------------------------------------------------------------------------------------------------------
+cinder:
+sudo journalctl -f -u devstack@c-* | egrep -v "pam_unix|warnings.warn|cinder-rootwrap|/usr/local/lib/python3.8/dist-packages"
+or
+sudo journalctl -f -u devstack@c-* | egrep -v "pam_unix|warnings.warn|cinder-rootwrap|/usr/local/lib/python3.8/dist-packages|seconds as it raised KeyError"
+
+nova:
+sudo journalctl -f -u devstack@n-* | egrep -v "PCI NUMA affinity will not be supported"
