@@ -140,8 +140,14 @@ class QuantumDriver(driver.VolumeDriver):
     def get_vols(self):
         self.logmsg('get vols/n')
 
-    def attach_volume(self):
-        self.logmsg('attach/n')
+    def attach_volume(self, context, volume, instance_uuid, host_name, mountpoint):
+        
+        print('qmco api attach_volume context:{}'.format(context))
+        print('qmco api attach_volume volume:{}'.format(volume))
+        print('qmco api attach_volume instance_uuid:{}'.format(instance_uuid))
+        print('qmco api attach_volume host_name:{}'.format(host_name))
+        print('qmco api attach_volume mountpoint:{}'.format(mountpoint))
+        self.logmsg('attach_volume done/n')
 
     def check_for_setup_error(self):
         self.logmsg('check for setup error/n')
@@ -220,8 +226,13 @@ class QuantumDriver(driver.VolumeDriver):
                                'encrypted': False}}
         return conn_info
                                                                   
-    def terminate_connection(self):
-        self.logmsg('terminate con /n')
+    def terminate_connection(self, volume, connector, force):
+        self.logmsg('terminate_connection enter/n')
+        print('qmco api termination_connection volume:{}'.format(volume))
+        print('qmco api termination_connection connector:{}'.format(connector))
+        print('qmco api termination_connection force:{}'.format(force))
+        self.logmsg('terminate_connection done/n')
+        
 
 
     # this help is not necessary if we can save the vol_id locally
