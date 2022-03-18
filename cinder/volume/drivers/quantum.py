@@ -35,7 +35,7 @@ class QuantumDriver(driver.VolumeDriver):
         self.p3api_v1 = "https://10.134.204.84:8443/p3api/v1/"
         self.p3api_v2 = "https://10.134.204.84:8080/p3api/v2/api/"
         # we should be able to set this via our api but it's troublesome
-        self.initiator_iqn = "iqn.2005-03.org.open-iscsi:4aa7c12387f9"
+        self.initiator_iqn = "iqn.2005-03.org.open-iscsi:53f3e15775f5"
         self.single_poc_target_portal = "10.134.22.21"
         
     def raise_assert(self, str):
@@ -86,7 +86,7 @@ class QuantumDriver(driver.VolumeDriver):
                 "GiB": volume['size']
             },
             "accessControl": {
-                "initiatorName": "iqn.2005-03.org.open-iscsi:4aa7c12387f9",
+                "initiatorName": self.initiator_iqn,
                 "access": "readwrite"
             }
         }

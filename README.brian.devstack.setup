@@ -73,11 +73,11 @@ C) cinder
 # patch -p0 < /corpshare/Users/bauld/review/triage/JP2/Enclouden/p3-POC/cinder.conf.patch
 # patch -p1 < /corpshare/Users/bauld/review/triage/JP2/Enclouden/p3-POC/0001-cinder-changes.patch
 
-# don't think this is needed anymore...
-cinder type-create quantum
-cinder type-key quantum set volume_backend_name=quantum
+# # don't think this is needed anymore...
+# cinder type-create quantum
+# cinder type-key quantum set volume_backend_name=quantum
 
-# INITIATOR IQN
+# ************** INITIATOR IQN ******************
 for POC, hardcode the iqn of the initiator into the quantum.py do_setup function. The api doesn't do host access stuff well.
 Need to debug the v1 call to set the initiator name on 'attach'
 
