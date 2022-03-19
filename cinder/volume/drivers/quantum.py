@@ -35,7 +35,7 @@ class QuantumDriver(driver.VolumeDriver):
         self.p3api_v1 = "https://10.134.204.84:8443/p3api/v1/"
         self.p3api_v2 = "https://10.134.204.84:8080/p3api/v2/api/"
         # we should be able to set this via our api but it's troublesome
-        self.initiator_iqn = "iqn.2005-03.org.open-iscsi:f7e16cb3e7a"
+        self.initiator_iqn = "iqn.2005-03.org.open-iscsi:41301bd2d5c1"
         self.single_poc_target_portal = "10.134.22.21"
         
     def raise_assert(self, str):
@@ -112,7 +112,7 @@ class QuantumDriver(driver.VolumeDriver):
         params = {"vpgId" : self.vpgid, "async" : "false", "volumeName" : volume['display_name']}
         data   = {}
         r = requests.delete(self.p3api_v2 + "vPG/vsVolume", params=params, json=data, auth=('pivot3','pivot3'), verify=False)
-        self.print_requests_response("qmco api Delete Volume", r)
+        #self.print_requests_response("qmco api Delete Volume", r)
         if ( r.status_code == 200 ):
             self.logmsg('delete_volume done')
             return
