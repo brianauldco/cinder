@@ -467,6 +467,7 @@ class VolumeAPI(rpc.RPCAPI):
     def attachment_update(self, ctxt, vref, connector, attachment_id):
         version = self._compat_ver('3.9')
         cctxt = self._get_cctxt(vref.service_topic_queue, version=version)
+        print("qmco_func rpcapi_attachment_update: connector:{}".format(connector))
         return cctxt.call(ctxt,
                           'attachment_update',
                           vref=vref,

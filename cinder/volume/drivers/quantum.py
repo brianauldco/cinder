@@ -6,6 +6,8 @@ from cinder import interface
 from cinder.volume import driver
 import requests
 import json
+import inspect
+import traceback
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -35,16 +37,18 @@ class QuantumDriver(driver.VolumeDriver):
         self.p3api_v1 = "https://10.134.204.84:8443/p3api/v1/"
         self.p3api_v2 = "https://10.134.204.84:8080/p3api/v2/api/"
         # we should be able to set this via our api but it's troublesome
-        self.initiator_iqn = "iqn.2005-03.org.open-iscsi:41301bd2d5c1"
+        self.initiator_iqn = "iqn.2005-03.org.open-iscsi:c6a3a62c357f"
         self.single_poc_target_portal = "10.134.22.21:3260"
         
     def raise_assert(self, str):
         assert False,str
 
     def logmsg(self, string):
+        print("qmco_func: ", inspect.stack()[0][3])
         LOG.info('qmco_api ' + string)
 
     def do_setup(self, context):
+        print("qmco_func: ", inspect.stack()[0][3])
         params = {"vpgName":self.vpg_name, "async": "false"}
         data   = {}
         r = requests.get(self.p3api_v2 + "vPG", params=params, data=data, auth=('pivot3','pivot3'), verify=False)
@@ -56,7 +60,7 @@ class QuantumDriver(driver.VolumeDriver):
             self.raise_assert("vpgid was not retrievable")
 
     def remove_export(self, context, volume):
-
+        print("qmco_func: ", inspect.stack()[0][3])
         vol_str = 'remove_export ->'        + \
             ' name: ' + volume['name']      + \
             ' id: '   + volume['id']        + \
@@ -65,7 +69,7 @@ class QuantumDriver(driver.VolumeDriver):
 
 
     def create_volume(self, volume):
-        
+        print("qmco_func: ", inspect.stack()[0][3])
         vol_str = 'create_volume start ->'        + \
             ' name: ' + volume['display_name']      + \
             ' id: '   + volume['id']        + \
@@ -100,6 +104,7 @@ class QuantumDriver(driver.VolumeDriver):
             self.logmsg('create_volume done error')
 
     def delete_volume(self, volume):
+        print("qmco_func: ", inspect.stack()[0][3])
         vol_str = 'delete_volume start ->'        + \
             ' name: ' + volume['display_name']      + \
             ' id: '   + volume['id']        + \
@@ -121,6 +126,12 @@ class QuantumDriver(driver.VolumeDriver):
             self.logmsg('create_volume done error')
 
     def create_export(self, context, volume, connector):
+        print("qmco_func: ", inspect.stack()[0][3], inspect.stack()[1][3])
+        #pprint(traceback.format_stack())
+        sline = 0
+        for line in traceback.format_stack():
+            print ("%d: %s", sline, line.strip())
+            sline = sline + 1
         vol_str = 'create export start ->'        + \
             ' name: ' + volume['display_name']      + \
             ' id: '   + volume['id']        + \
@@ -132,16 +143,19 @@ class QuantumDriver(driver.VolumeDriver):
         self.logmsg("create export done")
         
     def update_volume(self, volume):
+        print("qmco_func: ", inspect.stack()[0][3])
         self.logmsg('update/n')
 
     def get_vol_by_id(self, volume):
+        print("qmco_func: ", inspect.stack()[0][3])
         self.logmsg('get vol by id/n')
 
     def get_vols(self):
+        print("qmco_func: ", inspect.stack()[0][3])
         self.logmsg('get vols/n')
 
     def attach_volume(self, context, volume, instance_uuid, host_name, mountpoint):
-        
+        print("qmco_func: ", inspect.stack()[0][3])
         print('qmco api attach_volume context:{}'.format(context))
         print('qmco api attach_volume volume:{}'.format(volume))
         print('qmco api attach_volume instance_uuid:{}'.format(instance_uuid))
@@ -150,21 +164,27 @@ class QuantumDriver(driver.VolumeDriver):
         self.logmsg('attach_volume done/n')
 
     def check_for_setup_error(self):
+        print("qmco_func: ", inspect.stack()[0][3])
         self.logmsg('check for setup error/n')
 
     def clone_image(self):
+        print("qmco_func: ", inspect.stack()[0][3])
         self.logmsg('clone/n')
 
     def copy_image_to_volume(self):
+        print("qmco_func: ", inspect.stack()[0][3])
         self.logmsg('img to vol/n')
 
     def copy_volume_to_image(self):
+        print("qmco_func: ", inspect.stack()[0][3])
         self.logmsg('vol to img/n')
 
     def detach_volume(self):
+        print("qmco_func: ", inspect.stack()[0][3])
         self.logmsg('detach vol /n')
 
     def extend_volume(self):
+        print("qmco_func: ", inspect.stack()[0][3])
         self.logmsg('extend vol /n')
 
     def get_volume_stats(self, refresh=False):
@@ -176,11 +196,12 @@ class QuantumDriver(driver.VolumeDriver):
              'total_capacity_gb': 42,
              'free_capacity_gb': 42
          }
+         print("qmco_func: ", inspect.stack()[0][3])
          self.logmsg('updating backend stats')
          return ret
 
     def initialize_connection(self, volume, connector):
-
+        print("qmco_func: ", inspect.stack()[0][3])
         vol_str = 'initialize_connection start ->'        + \
             ' name: ' + volume['display_name']      + \
             ' id: '   + volume['id']        + \
@@ -227,6 +248,7 @@ class QuantumDriver(driver.VolumeDriver):
         return conn_info
                                                                   
     def terminate_connection(self, volume, connector, force):
+        print("qmco_func: ", inspect.stack()[0][3])
         self.logmsg('terminate_connection enter/n')
         print('qmco api termination_connection volume:{}'.format(volume))
         print('qmco api termination_connection connector:{}'.format(connector))
@@ -237,6 +259,7 @@ class QuantumDriver(driver.VolumeDriver):
 
     # this help is not necessary if we can save the vol_id locally
     def get_volume_details(self, volume):
+        print("qmco_func: ", inspect.stack()[0][3])
         params = {"vpgId":self.vpgid, "volumeName":volume['display_name'], "async": "false"}
         data   = {}
         r = requests.get(self.p3api_v2 + "vPG/vsVolume", params=params, data=data, auth=('pivot3','pivot3'), verify=False)
@@ -248,6 +271,7 @@ class QuantumDriver(driver.VolumeDriver):
             self.raise_assert("vpgid was not retrievable")
      
     def print_requests_response(self, action, response):
+        print("qmco_func: ", inspect.stack()[0][3])
         print(action)
         pretty_json = json.loads(response.text)
         print(json.dumps(pretty_json, indent=2))

@@ -4842,6 +4842,7 @@ class VolumeManager(manager.CleanableManager,
             mode = attachment_ref.attach_mode
             connector['mode'] = mode
 
+        print("qmco: manager.attachment_update: connector->:{}".format(connector))
         connection_info = self._connection_create(context,
                                                   vref,
                                                   attachment_ref,

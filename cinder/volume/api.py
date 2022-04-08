@@ -61,6 +61,7 @@ from cinder.volume.flows.api import manage_existing
 from cinder.volume import rpcapi as volume_rpcapi
 from cinder.volume import volume_types
 from cinder.volume import volume_utils
+import traceback
 
 allow_force_upload_opt = cfg.BoolOpt('enable_force_upload',
                                      default=False,
@@ -2150,6 +2151,8 @@ class API(base.Base):
                           instance_uuid,
                           connector=None,
                           attach_mode='null'):
+
+        print("qmco_func cinder/volume/api.py/attachment_create: 1 connector:{}".format(connector))
         """Create an attachment record for the specified volume."""
         ctxt.authorize(attachment_policy.CREATE_POLICY, target_obj=volume_ref)
         connection_info = {}
@@ -2165,6 +2168,7 @@ class API(base.Base):
         attachment_ref = self._attachment_reserve(ctxt,
                                                   volume_ref,
                                                   instance_uuid)
+        print("qmco_func cinder/volume/api.py/attachment_create:  2 connector:{}".format(connector))
         if connector:
             connection_info = (
                 self.volume_rpcapi.attachment_update(ctxt,
@@ -2187,9 +2191,16 @@ class API(base.Base):
             # other words, using volume_admin_metadata and mode params
             # are NOT compatible
         else:
+            print("qmco_func cinder/volume/api.py/attachment_create:  3 attach_mode:{}".format(attach_mode))
             attachment_ref.attach_mode = attach_mode
 
         attachment_ref.save()
+
+        sline = 0
+        for line in traceback.format_stack():
+            print ("%d: %s", sline, line.strip())
+            sline = sline + 1
+         
         return attachment_ref
 
     @coordination.synchronized(
@@ -2209,6 +2220,8 @@ class API(base.Base):
         # We fetch the volume object and pass it to the rpc call because we
         # need to direct this to the correct host/backend
 
+        
+        print("qmco_func cinder/volume/api.py/attachment_update: connector:{}".format(connector))
         ctxt.authorize(attachment_policy.UPDATE_POLICY,
                        target_obj=attachment_ref)
         volume_ref = objects.Volume.get_by_id(ctxt, attachment_ref.volume_id)
