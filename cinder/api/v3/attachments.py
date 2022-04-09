@@ -211,7 +211,7 @@ class AttachmentsController(wsgi.Controller):
             if err_msg:
                 raise webob.exc.HTTPInternalServerError(explanation=err_msg)
 
-        print("qmco_func cinder/api/v3/attachements.py create() exit body:{} ref{}".format(body, attachment_ref)
+        print("qmco_func cinder/api/v3/attachements.py create() exit body:{} ref{}".format(body, attachment_ref))
         return attachment_views.ViewBuilder.detail(attachment_ref)
 
     @wsgi.Controller.api_version(mv.NEW_ATTACH)
@@ -244,6 +244,7 @@ class AttachmentsController(wsgi.Controller):
             }
 
         """
+        print("qmco_func cinder/api/v3/attachments.py update() body:{}".format(body))
         context = req.environ['cinder.context']
         attachment_ref = (
             objects.VolumeAttachment.get_by_id(context, id))

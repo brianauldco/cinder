@@ -2222,6 +2222,11 @@ class API(base.Base):
 
         
         print("qmco_func cinder/volume/api.py/attachment_update: connector:{}".format(connector))
+        sline = 0
+        for line in traceback.format_stack():
+            print ("%d: %s", sline, line.strip())
+            sline = sline + 1
+        
         ctxt.authorize(attachment_policy.UPDATE_POLICY,
                        target_obj=attachment_ref)
         volume_ref = objects.Volume.get_by_id(ctxt, attachment_ref.volume_id)
